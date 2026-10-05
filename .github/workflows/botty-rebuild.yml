@@ -1,78 +1,15 @@
-name: Botty Rebuild Test Package
+name: Legacy Botty Baseline Package
 
+# Retained only for reference. The active rebuild is build-release.yml,
+# which produces the SoulRunner Control Center with the full pinned runtime.
 on:
-  push:
-    branches: [botty-rebuild]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  package:
-    runs-on: windows-latest
+  legacy-note:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout SoulRunner branch
-        uses: actions/checkout@v4
-
-      - name: Checkout original Botty baseline
-        uses: actions/checkout@v4
-        with:
-          repository: johannes-do/botty
-          ref: master
-          path: botty
-
-      - name: Add SoulRunner test launcher
-        shell: powershell
-        run: |
-          @'
-          @echo off
-          title SoulRunner - Botty Baseline
-          echo ========================================
-          echo  SOULRUNNER - BOTTY BASELINE TEST
-          echo ========================================
-          echo.
-          echo This is the clean Botty foundation build.
-          echo First goal: prove original Botty starts correctly on this PC.
-          echo.
-          echo Read SETUP_FIRST.txt before running.
-          echo.
-          pause
-          cd /d "%~dp0botty"
-          call run.bat
-          '@ | Set-Content -Encoding ASCII SoulRunner-Botty-Test.bat
-
-          @'
-          SOULRUNNER - BOTTY BASELINE TEST
-
-          This package intentionally starts from the original Botty project instead of the old SoulRunner click-route system.
-
-          FIRST TEST:
-          1. Extract this entire ZIP to a normal folder.
-          2. Read botty/README.md for Botty's prerequisites and D2R settings.
-          3. Configure Botty using its original config files.
-          4. Start Diablo II: Resurrected in the settings Botty expects.
-          5. Run SoulRunner-Botty-Test.bat.
-
-          This first package is a baseline/source test package, not the finished one-click EXE.
-          The next step is to simplify Botty specifically around Act 5 -> Anya portal -> Pindle.
-
-          Original Botty project: https://github.com/johannes-do/botty
-          Botty is MIT licensed; see botty/LICENSE.txt.
-          '@ | Set-Content -Encoding UTF8 SETUP_FIRST.txt
-
-      - name: Create ZIP
-        shell: powershell
-        run: |
-          New-Item -ItemType Directory -Force out | Out-Null
-          Copy-Item -Recurse botty out/botty
-          Copy-Item SoulRunner-Botty-Test.bat out/
-          Copy-Item SETUP_FIRST.txt out/
-          Compress-Archive -Path out/* -DestinationPath SoulRunner-Botty-Baseline.zip -Force
-
-      - name: Upload downloadable test package
-        uses: actions/upload-artifact@v4
-        with:
-          name: SoulRunner-Botty-Baseline
-          path: SoulRunner-Botty-Baseline.zip
-          retention-days: 30
+      - run: echo "Legacy baseline workflow retired; use Build SoulRunner Rebuild."

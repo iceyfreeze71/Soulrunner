@@ -1,4 +1,4 @@
-name: Botty Windows Test Build
+name: SoulRunner Basic Windows Build
 
 on:
   push:
@@ -12,56 +12,53 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - name: Checkout SoulRunner
-        uses: actions/checkout@v4
-
-      - name: Checkout Botty
+      - uses: actions/checkout@v4
+      - name: Checkout engine source
         uses: actions/checkout@v4
         with:
           repository: johannes-do/botty
           ref: master
           path: botty
-
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: botty
           environment-file: botty/environment.yml
           auto-activate-base: false
-
-      - name: Build original Botty executable
+      - name: Build engine
         shell: cmd /C call {0}
         run: |
           cd botty
           python build.py
-
-      - name: Locate and package executable build
+      - name: Build SoulRunner launcher
+        shell: cmd /C call {0}
+        run: pyinstaller --noconfirm --clean --onefile --windowed --name SoulRunner soulrunner_launcher.py
+      - name: Package SoulRunner
         shell: powershell
         run: |
           $built = Get-ChildItem botty -Directory | Where-Object { $_.Name -like 'botty_v*' } | Select-Object -First 1
-          if (-not $built) { throw 'Botty build folder was not created' }
-          if (-not (Test-Path "$($built.FullName)\main.exe")) { throw 'main.exe was not created' }
-          New-Item -ItemType Directory -Force out | Out-Null
-          Copy-Item -Recurse "$($built.FullName)\*" out\
-          Rename-Item out\main.exe SoulRunner.exe
-          @'
-          SOULRUNNER - BOTTY FOUNDATION TEST
-
-          1. Extract this entire ZIP.
-          2. Start Diablo II: Resurrected.
-          3. Run SoulRunner.exe.
-
-          This build is the ready-to-run Botty executable foundation. It includes Botty's assets and config folder. We are testing the Botty runtime first; the simplified F10-only Act 5 launcher comes next after this executable starts successfully on your PC.
-
-          Original project: https://github.com/johannes-do/botty
-          License: MIT (included in LICENSE.txt)
-          '@ | Set-Content -Encoding UTF8 out\README-SOULRUNNER.txt
+          if (-not $built) { throw 'Engine build folder missing' }
+          if (-not (Test-Path "$($built.FullName)\main.exe")) { throw 'Engine executable missing' }
+          New-Item -ItemType Directory -Force out\engine | Out-Null
+          Copy-Item dist\SoulRunner.exe out\SoulRunner.exe
+          Copy-Item "$($built.FullName)\main.exe" out\engine\main.exe
+          Copy-Item -Recurse "$($built.FullName)\assets" out\engine\assets
+          Copy-Item -Recurse "$($built.FullName)\config" out\engine\config
           Copy-Item botty\LICENSE.txt out\LICENSE.txt
-          Compress-Archive -Path out\* -DestinationPath SoulRunner-Botty-Windows-Test.zip -Force
+          @'
+          SOULRUNNER BASIC TEST
 
-      - name: Upload Windows test build
+          Extract the full ZIP. Start Diablo II: Resurrected, then run SoulRunner.exe.
+          F10 starts the engine. F11 stops it.
+
+          This is the first functional foundation build. The next iteration narrows the engine configuration specifically to the Act 5 Anya portal basic run.
+
+          Third-party MIT license notices are included in LICENSE.txt.
+          '@ | Set-Content -Encoding UTF8 out\README.txt
+          Compress-Archive -Path out\* -DestinationPath SoulRunner-Basic-Test.zip -Force
+      - name: Upload SoulRunner build
         uses: actions/upload-artifact@v4
         with:
-          name: SoulRunner-Botty-Windows-Test
-          path: SoulRunner-Botty-Windows-Test.zip
+          name: SoulRunner-Basic-Test
+          path: SoulRunner-Basic-Test.zip
           retention-days: 30

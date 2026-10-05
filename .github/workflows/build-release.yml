@@ -1,13 +1,10 @@
-name: Build and Release SoulRunner
-
+name: Build SoulRunner
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: write
-
 jobs:
   build:
     runs-on: windows-latest
@@ -18,10 +15,17 @@ jobs:
           python-version: '3.13'
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Build EXE
+      - name: Get portal template
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force assets | Out-Null
+          Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/johannes-do/botty/master/assets/templates/a5_town/a5_red_portal.png' -OutFile 'assets/a5_red_portal.png'
+      - name: Apply portal patch
+        run: python tools/apply_portal_patch.py
+      - name: Build
         shell: cmd
-        run: py -m PyInstaller --noconfirm --clean --onefile --windowed --name SoulRunner launcher_gui.py
-      - name: Package update
+        run: py -m PyInstaller --noconfirm --clean --onefile --windowed --name SoulRunner --add-data "assets/a5_red_portal.png;assets" launcher_gui.py
+      - name: Package
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force package | Out-Null
@@ -29,10 +33,10 @@ jobs:
           Copy-Item config.json package/config.json
           Copy-Item APPLY_UPDATE.bat package/APPLY_UPDATE.bat
           Compress-Archive -Path package/* -DestinationPath SoulRunner-update.zip -Force
-      - name: Publish release
+      - name: Release
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "build-${{ github.run_number }}"
-          gh release create $tag SoulRunner-update.zip --title "SoulRunner $tag" --notes "Automatic Windows build from main." --latest
+          $tag = 'build-${{ github.run_number }}'
+          gh release create $tag SoulRunner-update.zip --title $tag --notes 'Visual portal targeting update' --latest

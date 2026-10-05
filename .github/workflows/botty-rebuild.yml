@@ -1,4 +1,4 @@
-name: SoulRunner Basic Windows Build
+name: SoulRunner Nova Pindle Build
 
 on:
   push:
@@ -19,6 +19,17 @@ jobs:
           repository: johannes-do/botty
           ref: master
           path: botty
+      - name: Configure Nova Sorc Pindle only
+        shell: powershell
+        run: |
+          $p = 'botty/config/params.ini'
+          $c = Get-Content $p -Raw
+          $c = $c -replace '(?m)^name=.*$', 'name=SoulRunner'
+          $c = $c -replace '(?m)^order=.*$', 'order=run_pindle'
+          $c = $c -replace '(?m)^type=.*$', 'type=nova_sorc'
+          $c = $c -replace '(?m)^randomize_runs=.*$', 'randomize_runs=0'
+          $c = $c -replace '(?m)^restart_d2r_when_stuck=.*$', 'restart_d2r_when_stuck=0'
+          Set-Content $p $c -Encoding UTF8
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
@@ -46,19 +57,21 @@ jobs:
           Copy-Item -Recurse "$($built.FullName)\config" out\engine\config
           Copy-Item botty\LICENSE.txt out\LICENSE.txt
           @'
-          SOULRUNNER BASIC TEST
+          SOULRUNNER - NOVA PINDLE TEST
 
-          Extract the full ZIP. Start Diablo II: Resurrected, then run SoulRunner.exe.
-          F10 starts the engine. F11 stops it.
+          Target: Nova Sorceress, Hell, Pindle only.
 
-          This is the first functional foundation build. The next iteration narrows the engine configuration specifically to the Act 5 Anya portal basic run.
+          Extract the entire ZIP. Start Diablo II: Resurrected, then run SoulRunner.exe.
+          F10 starts SoulRunner. F11 stops it.
 
-          Third-party MIT license notices are included in LICENSE.txt.
+          IMPORTANT: Nova and teleport skill hotkeys still need to match the D2R character bindings in engine/config/params.ini. This build deliberately preserves the proven Pindle approach: Act 5 town pathing -> Nihlathak portal location -> visual red portal selection.
+
+          Third-party MIT attribution is included in LICENSE.txt.
           '@ | Set-Content -Encoding UTF8 out\README.txt
-          Compress-Archive -Path out\* -DestinationPath SoulRunner-Basic-Test.zip -Force
+          Compress-Archive -Path out\* -DestinationPath SoulRunner-Nova-Pindle.zip -Force
       - name: Upload SoulRunner build
         uses: actions/upload-artifact@v4
         with:
-          name: SoulRunner-Basic-Test
-          path: SoulRunner-Basic-Test.zip
+          name: SoulRunner-Nova-Pindle
+          path: SoulRunner-Nova-Pindle.zip
           retention-days: 30

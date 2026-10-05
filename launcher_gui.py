@@ -6,7 +6,7 @@ APP_DIR=Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) els
 CONFIG_PATH=APP_DIR/'config.json'; ROUTE_PATH=APP_DIR/'town_route.json'
 events=queue.Queue(); running=False; paused=False; recording=False; record_events=[]; record_start=0.0
 stop_event=threading.Event(); pause_event=threading.Event()
-DEFAULT_CONFIG={'version':'23.4','reference_resolution':[1664,928],'play':[700/1664,788/928],'hell':[830/1664,480/928],'anya_portal':[0.373,0.420],'movement_wait_seconds':1.0,'update':{'release_api':'https://api.github.com/repos/iceyfreeze71/Soulrunner/releases/latest'}}
+DEFAULT_CONFIG={'version':'23.5','reference_resolution':[1664,928],'play':[700/1664,788/928],'hell':[830/1664,480/928],'anya_portal':[0.373,0.420],'movement_wait_seconds':1.0,'update':{'release_api':'https://api.github.com/repos/iceyfreeze71/Soulrunner/releases/latest'}}
 def load_config():
     if not CONFIG_PATH.exists(): CONFIG_PATH.write_text(json.dumps(DEFAULT_CONFIG,indent=2),encoding='utf-8')
     try:return json.loads(CONFIG_PATH.read_text(encoding='utf-8'))
@@ -95,15 +95,17 @@ def bot_worker():
             time.sleep(.2);im=ImageGrab.grab()
             if looks_difficulty(im):pt=scaled(hell,im.size);emit(f'[RUN] HELL -> {pt}');pyautogui.click(*pt);break
         else:emit('[FAIL] Difficulty not detected.');return
-        deadline=time.time()+18
+        emit('[RUN] Waiting for game load / Harrogath...')
+        confirmed=False;deadline=time.time()+18
         while time.time()<deadline:
             if not checkpoint():return
             time.sleep(.5);scene=detector.detect(ImageGrab.grab())
-            if scene==Scene.HARROGATH_RED_PORTAL:emit('[RUN] Harrogath confirmed.');break
-        else:emit('[FAIL] Harrogath not confirmed.');return
-        time.sleep(.7);emit('[RUN] Using SAME route function as TEST RECORDED ROUTE.')
-        if not run_active_town_route():emit('[FAIL] Shared route unavailable.');return
-        time.sleep(.75);pt=scaled(portal,ImageGrab.grab().size);emit(f'[RUN] ANYA PORTAL -> {pt}');pyautogui.moveTo(*pt,duration=.2);pyautogui.click();deadline=time.time()+10
+            if scene==Scene.HARROGATH_RED_PORTAL:confirmed=True;emit('[RUN] Harrogath confirmed.');break
+        if not confirmed:emit('[WARN] Harrogath visual confirmation missed; continuing with active town route.')
+        time.sleep(.7);emit('[RUN] Starting active town route.')
+        if not run_active_town_route():emit('[FAIL] Active town route unavailable.');return
+        time.sleep(.75);emit('[RUN] Town route complete. Searching/clicking Anya portal target.')
+        pt=scaled(portal,ImageGrab.grab().size);emit(f'[RUN] ANYA PORTAL -> {pt}');pyautogui.moveTo(*pt,duration=.2);pyautogui.click();deadline=time.time()+10
         while time.time()<deadline:
             if not checkpoint():return
             time.sleep(.4)
@@ -145,7 +147,7 @@ def check_update():
         except Exception as e:emit('[UPDATE ERROR] '+repr(e))
     threading.Thread(target=work,daemon=True).start()
 BG='#0b0908';PANEL='#17110e';GOLD='#c8a66a';RED='#6e1712';TEXT='#e4d4b5';MUTED='#9a8a72'
-root=tk.Tk();root.title('SoulRunner v23.4 — GitHub Update');root.geometry('620x600');root.configure(bg=BG)
+root=tk.Tk();root.title('SoulRunner v23.5 — GitHub Update');root.geometry('620x600');root.configure(bg=BG)
 tk.Label(root,text='SOULRUNNER',font=('Georgia',28,'bold'),fg=GOLD,bg=BG).pack(pady=(22,0));tk.Label(root,text='SANCTUARY RUN CONTROLLER',font=('Georgia',9),fg=MUTED,bg=BG).pack(pady=(0,16))
 state=tk.StringVar(value='READY');tk.Label(root,textvariable=state,font=('Segoe UI',13,'bold'),fg=TEXT,bg=PANEL,width=45,pady=12).pack(padx=24,fill='x');record_count_var=tk.StringVar(value='Recorder: 0 clicks');tk.Label(root,textvariable=record_count_var,font=('Consolas',10,'bold'),fg=GOLD,bg=BG).pack(pady=(7,0))
 keys=tk.Frame(root,bg=BG);keys.pack(pady=15)

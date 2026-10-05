@@ -15,29 +15,21 @@ jobs:
           python-version: '3.13'
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
-      - name: Get Botty Act 5 path templates
-        shell: powershell
-        run: |
-          New-Item -ItemType Directory -Force assets | Out-Null
-          $base='https://raw.githubusercontent.com/johannes-do/botty/master/assets/templates/a5_town'
-          $files=@('a5_red_portal.png','a5_town_1.png','a5_town_2.png','a5_town_3.png','a5_town_4.png','a5_town_5.png','a5_town_6.png','a5_town_11.png')
-          foreach($f in $files){ Invoke-WebRequest -Uri "$base/$f" -OutFile "assets/$f" }
-      - name: Apply Botty path integration
-        run: python tools/apply_portal_patch.py
-      - name: Build
-        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name SoulRunner --add-data "assets;assets" launcher_gui.py
-      - name: Package
+      - name: Build SoulRunner
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name SoulRunner launcher_gui.py
+      - name: Package update
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force package | Out-Null
           Copy-Item dist/SoulRunner.exe package/SoulRunner.exe
-          Copy-Item config.json package/config.json
-          Copy-Item APPLY_UPDATE.bat package/APPLY_UPDATE.bat
+          if (Test-Path config.json) { Copy-Item config.json package/config.json }
+          if (Test-Path town_route.json) { Copy-Item town_route.json package/town_route.json }
+          if (Test-Path APPLY_UPDATE.bat) { Copy-Item APPLY_UPDATE.bat package/APPLY_UPDATE.bat }
           Compress-Archive -Path package/* -DestinationPath SoulRunner-update.zip -Force
-      - name: Release
+      - name: Publish latest update
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = 'build-${{ github.run_number }}'
-          gh release create $tag SoulRunner-update.zip --title $tag --notes 'SoulRunner v24.0: Botty dynamic Harrogath landmark pathing replaces the recorded F10 route.' --latest
+          gh release create $tag SoulRunner-update.zip --title "SoulRunner $tag" --notes "SoulRunner v23.5: Harrogath confirmation is no longer a hard stop. The active town route continues after game load." --latest

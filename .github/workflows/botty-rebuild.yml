@@ -36,36 +36,43 @@ jobs:
           activate-environment: botty
           environment-file: botty/environment.yml
           auto-activate-base: false
-      - name: Build engine
+      - name: Ensure runtime packaging dependencies
+        shell: cmd /C call {0}
+        run: |
+          python -m pip install --upgrade pyparsing pyinstaller
+          python -c "import pyparsing; print('pyparsing', pyparsing.__version__)"
+      - name: Build engine with pyparsing bundled
         shell: cmd /C call {0}
         run: |
           cd botty
-          python build.py
+          pyinstaller --noconfirm --clean --onefile --distpath soulrunner_engine --paths .\src --collect-all pyparsing src\main.py
+          mkdir soulrunner_engine\config
+          copy config\game.ini soulrunner_engine\config\game.ini
+          copy config\params.ini soulrunner_engine\config\params.ini
+          copy config\shop.ini soulrunner_engine\config\shop.ini
+          copy config\default.bnip soulrunner_engine\config\default.bnip
+          xcopy assets soulrunner_engine\assets\ /E /I /Y
       - name: Build SoulRunner launcher
         shell: cmd /C call {0}
         run: pyinstaller --noconfirm --clean --onefile --windowed --name SoulRunner soulrunner_launcher.py
       - name: Package SoulRunner
         shell: powershell
         run: |
-          $built = Get-ChildItem botty -Directory | Where-Object { $_.Name -like 'botty_v*' } | Select-Object -First 1
-          if (-not $built) { throw 'Engine build folder missing' }
-          if (-not (Test-Path "$($built.FullName)\main.exe")) { throw 'Engine executable missing' }
+          if (-not (Test-Path 'botty/soulrunner_engine/main.exe')) { throw 'Engine executable missing' }
           New-Item -ItemType Directory -Force out\engine | Out-Null
           Copy-Item dist\SoulRunner.exe out\SoulRunner.exe
-          Copy-Item "$($built.FullName)\main.exe" out\engine\main.exe
-          Copy-Item -Recurse "$($built.FullName)\assets" out\engine\assets
-          Copy-Item -Recurse "$($built.FullName)\config" out\engine\config
+          Copy-Item botty\soulrunner_engine\main.exe out\engine\main.exe
+          Copy-Item -Recurse botty\soulrunner_engine\assets out\engine\assets
+          Copy-Item -Recurse botty\soulrunner_engine\config out\engine\config
           Copy-Item botty\LICENSE.txt out\LICENSE.txt
           @'
           SOULRUNNER - NOVA PINDLE TEST
 
           Target: Nova Sorceress, Hell, Pindle only.
+          Extract the entire ZIP. Start Diablo II: Resurrected, run SoulRunner.exe, then press F10.
+          F11 stops SoulRunner.
 
-          Extract the entire ZIP. Start Diablo II: Resurrected, then run SoulRunner.exe.
-          F10 starts SoulRunner. F11 stops it.
-
-          IMPORTANT: Nova and teleport skill hotkeys still need to match the D2R character bindings in engine/config/params.ini. This build deliberately preserves the proven Pindle approach: Act 5 town pathing -> Nihlathak portal location -> visual red portal selection.
-
+          This build explicitly bundles pyparsing and keeps diagnostic engine output in the SoulRunner run log.
           Third-party MIT attribution is included in LICENSE.txt.
           '@ | Set-Content -Encoding UTF8 out\README.txt
           Compress-Archive -Path out\* -DestinationPath SoulRunner-Nova-Pindle.zip -Force

@@ -26,10 +26,11 @@ jobs:
           python -m pip install --upgrade pip
           if (Test-Path requirements.txt) { python -m pip install -r requirements.txt }
           python -m pip install --force-reinstall "numpy==1.26.4" "opencv-python==4.5.5.64"
-          python -m pip install pyinstaller pywin32 transitions mss mouse keyboard beautifultable pytweening requests graphviz psutil cryptography pillow discord.py parse pyparsing typing_extensions colorama dataclasses-json rapidfuzz
+          python -m pip install pyinstaller pywin32 transitions mss mouse keyboard beautifultable pytweening requests graphviz psutil cryptography pillow discord.py parse pyparsing typing_extensions colorama dataclasses-json
+          python -m pip install --force-reinstall "rapidfuzz==2.15.2"
           $ocr = Get-ChildItem botty_upstream/dependencies/tesserocr-2.5.2-cp310-cp310-win_amd64.whl -ErrorAction SilentlyContinue
           if ($ocr) { python -m pip install $ocr.FullName }
-          python -c "import numpy,cv2,pyparsing; print('NumPy',numpy.__version__,'OpenCV',cv2.__version__,'pyparsing',pyparsing.__version__)"
+          python -c "import numpy,cv2,pyparsing,rapidfuzz; from rapidfuzz.string_metric import levenshtein; print('NumPy',numpy.__version__,'OpenCV',cv2.__version__,'pyparsing',pyparsing.__version__,'RapidFuzz',rapidfuzz.__version__)"
       - name: Verify upstream core imports
         shell: powershell
         run: |

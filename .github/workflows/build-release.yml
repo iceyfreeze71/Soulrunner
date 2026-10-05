@@ -1,0 +1,38 @@
+name: Build and Release SoulRunner
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Build EXE
+        shell: cmd
+        run: py -m PyInstaller --noconfirm --clean --onefile --windowed --name SoulRunner launcher_gui.py
+      - name: Package update
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force package | Out-Null
+          Copy-Item dist/SoulRunner.exe package/SoulRunner.exe
+          Copy-Item config.json package/config.json
+          Copy-Item APPLY_UPDATE.bat package/APPLY_UPDATE.bat
+          Compress-Archive -Path package/* -DestinationPath SoulRunner-update.zip -Force
+      - name: Publish release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "build-${{ github.run_number }}"
+          gh release create $tag SoulRunner-update.zip --title "SoulRunner $tag" --notes "Automatic Windows build from main." --latest
